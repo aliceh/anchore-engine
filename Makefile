@@ -23,29 +23,9 @@ SHELL = /bin/bash
 .NOTPARALLEL: # wait for targets to finish
 .EXPORT_ALL_VARIABLES: # send all vars to shell
 
-.PHONY: venv
-venv: $(VENV_NAME)/bin/activate ## setup virtual environment
-$(VENV_NAME)/bin/activate: setup.py requirements.txt
-	if [[ $(CI) == true ]]; then
-		hash pip || pip install pip
-		hash virtualenv || pip install virtualenv
-	else
-		hash pip || (echo 'ensure python-pip is installed before attempting to setup virtualenv' && exit 1)
-		hash virtualenv || (echo 'ensure virtualenv is installed before attempting to setup virtualenv - `pip install virtualenv`' && exit 1)
-	fi
-	test -f $(VENV_NAME)/bin/python3 || virtualenv -p python3 $(VENV_NAME)
+.PHONY: install ## install anchore-engine to venv
+install: venv setup.py requirements.txt
 	${PYTHON} -m pip install --editable .
-	touch $(VENV_NAME)/bin/activate
-
-.PHONY: deps
-deps: | venv $(VENV_NAME)/.stamps/deps_installed ## install testing dependencies
-$(VENV_NAME)/.stamps/deps_installed: $(VENV_NAME)/.stamps
-	@
-	$(VENV_ACTIVATE)
-	hash tox || pip install tox
-	hash docker-compose || pip install docker-compose
-	hash anchore-cli || pip install anchorecli
-	touch $@
 
 .PHONY: build
 build: Dockerfile ## build image
@@ -88,6 +68,14 @@ lint: venv ## lint code with pylint
 	hash pylint || pip install --upgrade pylint
 	pylint anchore_engine
 	pylint anchore_manager
+
+.PHONY: deps
+deps: venv ## install testing dependencies
+	@$(VENV_ACTIVATE)
+	mkdir -p .tox
+	hash tox || pip install tox
+	hash docker-compose || pip install docker-compose
+	hash anchore-cli || pip install anchorecli
 
 .PHONY: test-all
 test-all: test-unit test-integration test-functional test-compose ## run all tests - unit, integration, functional, e2e
@@ -153,10 +141,22 @@ clean-pyc: ## deletes all .pyc files
 clean-container: ## delete built image
 	docker rmi $(IMAGE_NAME)
 
+.PHONY: venv
+venv: $(VENV_NAME)/bin/activate ## setup virtual environment
+$(VENV_NAME)/bin/activate:
+	if [[ $(CI) == true ]]; then
+		hash pip || pip install pip
+		hash virtualenv || pip install virtualenv
+	else
+		hash pip || (echo 'ensure python-pip is installed before attempting to setup virtualenv' && exit 1)
+		hash virtualenv || (echo 'ensure virtualenv is installed before attempting to setup virtualenv - `pip install virtualenv`' && exit 1)
+	fi
+	test -f $(VENV_NAME)/bin/python3 || virtualenv -p python3 $(VENV_NAME)
+	touch $@
+
 .PHONY: setup-dev
 setup-dev: | .python-version ## install pyenv, python and set local .python_version
-	@
-	echo
+	@echo
 	echo 'To enable pyenv in your current shell run: `exec $$SHELL`'
 	echo 'Then continue the development environment setup with: `make deps`'
 .python-version: | $(HOME)/.pyenv/versions/$(PYTHON_VERSION)/bin/python
@@ -178,12 +178,6 @@ $(HOME)/.pyenv:
 	fi
 	echo
 
-$(VENV_NAME)/.stamps:
-	@
-	mkdir -p $@
-	touch $@
-
 .PHONY: help
 help: ## show help
-	@
-	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
