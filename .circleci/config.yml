@@ -40,6 +40,8 @@ commands:
         key: v1-dependencies-{{ .Branch }}-{{ checksum "requirements.txt" }}
     - store_artifacts:
         path: .tox/tox.log
+    - store_results:
+        path: .tox/results
 
 jobs:
   unit_tests:
