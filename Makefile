@@ -1,7 +1,10 @@
+# This Makefile requires make v3.8.2 or newer to function properly due to the .ONESHELL directive. (for macos - `brew install gmake` then add `alias make=gmake` to your .bash_profile)
 # Project Specific configuration
 CI ?= false
-COMMIT ?= $(shell echo $${CIRCLE_SHA:=$$(git rev-parse HEAD)}) # Use $CIRCLE_SHA or use SHA from HEAD
-GIT_BRANCH ?= $(shell echo $${CIRCLE_BRANCH:=$$(git rev-parse --abbrev-ref HEAD)}) # Use $CIRCLE_BRANCH or branch name from HEAD
+# Use $CIRCLE_SHA or use SHA from HEAD
+COMMIT ?= $(shell echo $${CIRCLE_SHA:=$$(git rev-parse HEAD)})
+# Use $CIRCLE_BRANCH or use current HEAD branch
+GIT_BRANCH ?= $(shell echo $${CIRCLE_BRANCH:=$$(git rev-parse --abbrev-ref HEAD)})
 CLI_COMMIT ?= $(shell (git ls-remote git@github.com:anchore/anchore-cli "refs/heads/$(GIT_BRANCH)" | awk '{ print $$1 }'))
 IMAGE_TAG ?= $(COMMIT)
 IMAGE_REPOSITORY ?= anchore/anchore-engine-dev
@@ -15,7 +18,7 @@ VENV_ACTIVATE = . $(VENV_NAME)/bin/activate
 PYTHON = $(VENV_NAME)/bin/python3
 .SHELLFLAGS = -o pipefail -ec # run commands in a -o pipefail -ec flag
 .DEFAULT_GOAL := help # Running `Make` will run the help target
-.ONESHELL: # Run every line in recipes in same shell - only works on make v3.8.2 or newer (for macos - `brew install gmake && alias make=gmake`)
+.ONESHELL: # Run every line in recipes in same shell
 .NOTPARALLEL: # wait for targets to finish
 .EXPORT_ALL_VARIABLES: # send all vars to shell
 
@@ -30,7 +33,7 @@ $(VENV_NAME)/bin/activate: setup.py requirements.txt
 		hash virtualenv || (echo 'ensure virtualenv is installed before attempting to setup virtualenv - `pip install virtualenv`' && exit 1)
 	fi
 	test -f $(VENV_NAME)/bin/python3 || virtualenv -p python3 $(VENV_NAME)
-	pip install --editable .
+	${PYTHON} -m pip install --editable .
 	touch $(VENV_NAME)/bin/activate
 
 .PHONY: deps
@@ -119,17 +122,17 @@ test-compose: compose-up ## run compose tests with docker-compose
 	anchore-cli --u admin --p foobar --url http://localhost:8228/v1 system status
 	python scripts/tests/aetest.py docker.io/alpine:latest
 	python scripts/tests/aefailtest.py docker.io/alpine:latest
-	if [[ ! $(CI) == true ]]; then
-		make compose-down
+	if [[ $(CI) == true ]]; then
 		# close forwarded port
 		ssh -S anchore -O exit remote-docker
 	fi
+	make compose-down
 
 .PHONY: clean-all
 clean-all: clean clean-tests clean-pyc clean-container ## clean all build/test artifacts
 
 .PHONY: clean
-clean-build: ## delete all build directories & virtualenv
+clean: ## delete all build directories & virtualenv
 	rm -rf venv \
 		*.egg-info \
 		dist \
