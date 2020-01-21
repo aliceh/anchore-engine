@@ -4,17 +4,18 @@ CI ?= false
 # Use $CIRCLE_SHA or use SHA from HEAD
 COMMIT ?= $(shell echo $${CIRCLE_SHA:=$$(git rev-parse HEAD)})
 # Use $CIRCLE_BRANCH or use current HEAD branch
+GIT_REPO ?= $(shell echo $${CIRCLE_PROJECT_REPONAME:=$$(basename `git rev-parse --show-toplevel`)})
 GIT_BRANCH ?= $(shell echo $${CIRCLE_BRANCH:=$$(git rev-parse --abbrev-ref HEAD)})
 CLI_COMMIT ?= $(shell (git ls-remote git@github.com:anchore/anchore-cli "refs/heads/$(GIT_BRANCH)" | awk '{ print $$1 }'))
 IMAGE_TAG = $(COMMIT)
 IMAGE_REPOSITORY = anchore/anchore-engine-dev
-RELEASE_BRANCHES = '(0.2|0.3|0.4|0.5|0.6)'
 IMAGE_NAME = $(IMAGE_REPOSITORY):$(IMAGE_TAG)
+RELEASE_BRANCHES = '(0.2|0.3|0.4|0.5|0.6)'
 PYTHON_VERSION = 3.6.6
-VENV_NAME = venv
 
 # Make environment configuration
 ENV = /usr/bin/env
+VENV_NAME = venv
 VENV_ACTIVATE = . $(VENV_NAME)/bin/activate
 PYTHON = $(VENV_NAME)/bin/python3
 SHELL = /bin/bash
@@ -31,6 +32,11 @@ install: venv setup.py requirements.txt
 .PHONY: build
 build: Dockerfile ## build image
 	docker build --build-arg ANCHORE_COMMIT=$(COMMIT) --build-arg CLI_COMMIT=$(CLI_COMMIT) -t $(IMAGE_NAME) -f ./Dockerfile .
+	if [[ $(CI) == true ]]; then
+		rm -rf /home/circleci/workspace/caches/
+        mkdir -p /home/circleci/workspace/caches/
+		docker save -o "/home/circleci/workspace/caches/$(GIT_REPO)-$(COMMIT).tar" $(IMAGE_NAME)
+	fi
 
 .PHONY: compose-up
 compose-up: $(VENV_NAME)/docker-compose.yaml ## run container with docker-compose.yaml file
@@ -50,11 +56,8 @@ compose-down:
 
 .PHONY: push
 push: ## push image to dockerhub
-	docker tag $(IMAGE_NAME) $(IMAGE_REPOSITORY):latest
-	echo "Pushing $(IMAGE_NAME) && $(IMAGE_REPOSITORY):latest"
-	docker push $(IMAGE_REPOSITORY):latest
-	docker push $(IMAGE_NAME)
 	if [[ $(CI) == true ]]; then
+		docker load -i "/home/circleci/workspace/caches/$(GIT_REPO)-$(COMMIT).tar"
 		if [[ $(GIT_BRANCH) == 'master' ]]; then
 			echo "tagging & pushing image -- docker.io/anchore/anchore-engine:dev"
 			docker tag $(IMAGE_NAME) docker.io/anchore/anchore-engine:dev
@@ -65,6 +68,10 @@ push: ## push image to dockerhub
 			docker push docker.io/anchore/anchore-engine:$(GIT_BRANCH)-dev
 		fi
 	fi
+	echo "Pushing $(IMAGE_NAME) && $(IMAGE_REPOSITORY):latest"
+	docker tag $(IMAGE_NAME) $(IMAGE_REPOSITORY):latest
+	docker push $(IMAGE_REPOSITORY):latest
+	docker push $(IMAGE_NAME)
 
 .PHONY: lint
 lint: venv ## lint code with pylint
