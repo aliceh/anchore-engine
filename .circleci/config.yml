@@ -40,7 +40,7 @@ commands:
         key: v1-dependencies-{{ .Branch }}-{{ checksum "requirements.txt" }}
     - store_artifacts:
         path: .tox/tox.log
-    - store_results:
+    - store_test_results:
         path: .tox/results
 
 jobs:
@@ -83,7 +83,7 @@ jobs:
 
   build:
     docker:
-    - image: docker:stable
+    - image: circleci/python:3.6
     steps:
     - checkout
     - setup_remote_docker:
@@ -107,7 +107,7 @@ jobs:
 
   push_dockerhub:
     docker:
-    - image: docker:stable
+    - image: circleci/python:3.6
     steps:
     - setup_remote_docker
     - <<: *attach_workspace
@@ -138,15 +138,15 @@ workflows:
     - integration_tests
     - build:
         context: dockerhub
-        filters:
-          branches:
-            only:
-            - 'master'
-            - '0.6'
-            - '0.5'
-            - '0.4'
-            - '0.3'
-            - '0.2'
+        # filters:
+        #   branches:
+        #     only:
+        #     - 'master'
+        #     - '0.6'
+        #     - '0.5'
+        #     - '0.4'
+        #     - '0.3'
+        #     - '0.2'
     - push_dockerhub:
         context: dockerhub
         requires:
