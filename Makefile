@@ -34,7 +34,7 @@ build: Dockerfile ## build image
 	docker build --build-arg ANCHORE_COMMIT=$(COMMIT) --build-arg CLI_COMMIT=$(CLI_COMMIT) -t $(IMAGE_NAME) -f ./Dockerfile .
 	if [[ $(CI) == true ]]; then
 		rm -rf /home/circleci/workspace/caches/
-        mkdir -p /home/circleci/workspace/caches/
+		mkdir -p /home/circleci/workspace/caches/
 		docker save -o "/home/circleci/workspace/caches/$(GIT_REPO)-$(COMMIT).tar" $(IMAGE_NAME)
 	fi
 
