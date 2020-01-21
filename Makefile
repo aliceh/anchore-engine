@@ -6,12 +6,12 @@ COMMIT ?= $(shell echo $${CIRCLE_SHA:=$$(git rev-parse HEAD)})
 # Use $CIRCLE_BRANCH or use current HEAD branch
 GIT_BRANCH ?= $(shell echo $${CIRCLE_BRANCH:=$$(git rev-parse --abbrev-ref HEAD)})
 CLI_COMMIT ?= $(shell (git ls-remote git@github.com:anchore/anchore-cli "refs/heads/$(GIT_BRANCH)" | awk '{ print $$1 }'))
-IMAGE_TAG ?= $(COMMIT)
-IMAGE_REPOSITORY ?= anchore/anchore-engine-dev
+IMAGE_TAG = $(COMMIT)
+IMAGE_REPOSITORY = anchore/anchore-engine-dev
 RELEASE_BRANCHES = '(0.2|0.3|0.4|0.5|0.6)'
-IMAGE_NAME ?= $(IMAGE_REPOSITORY):$(IMAGE_TAG)
-PYTHON_VERSION ?= 3.6.6
-VENV_NAME ?= venv
+IMAGE_NAME = $(IMAGE_REPOSITORY):$(IMAGE_TAG)
+PYTHON_VERSION = 3.6.6
+VENV_NAME = venv
 
 # Make environment configuration
 ENV = /usr/bin/env
@@ -50,6 +50,9 @@ compose-down:
 
 .PHONY: push
 push: ## push image to dockerhub
+	docker tag $(IMAGE_NAME) $(IMAGE_REPOSITORY):latest
+	echo "Pushing $(IMAGE_NAME) && $(IMAGE_REPOSITORY):latest"
+	docker push $(IMAGE_REPOSITORY):latest
 	docker push $(IMAGE_NAME)
 	if [[ $(CI) == true ]]; then
 		if [[ $(GIT_BRANCH) == 'master' ]]; then
