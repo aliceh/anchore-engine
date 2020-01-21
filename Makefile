@@ -16,6 +16,7 @@ VENV_NAME ?= venv
 ENV = /usr/bin/env
 VENV_ACTIVATE = . $(VENV_NAME)/bin/activate
 PYTHON = $(VENV_NAME)/bin/python3
+SHELL = /bin/bash
 .SHELLFLAGS = -o pipefail -ec # run commands in a -o pipefail -ec flag
 .DEFAULT_GOAL := help # Running `Make` will run the help target
 .ONESHELL: # Run every line in recipes in same shell

@@ -33,7 +33,7 @@ commands:
         - v1-dependencies-{{ .Branch }}-{{ checksum "requirements.txt" }}
     - run:
         name: run tests
-        command: make test-{{ test_type }}
+        command: make test-<< test_type >>
     - save_cache:
         paths:
           - ~/project/.tox
