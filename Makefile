@@ -8,6 +8,7 @@ GIT_BRANCH ?= $(shell echo $${CIRCLE_BRANCH:=$$(git rev-parse --abbrev-ref HEAD)
 CLI_COMMIT ?= $(shell (git ls-remote git@github.com:anchore/anchore-cli "refs/heads/$(GIT_BRANCH)" | awk '{ print $$1 }'))
 IMAGE_TAG ?= $(COMMIT)
 IMAGE_REPOSITORY ?= anchore/anchore-engine-dev
+RELEASE_BRANCHES = '(0.2|0.3|0.4|0.5|0.6)'
 IMAGE_NAME ?= $(IMAGE_REPOSITORY):$(IMAGE_TAG)
 PYTHON_VERSION ?= 3.6.6
 VENV_NAME ?= venv
@@ -55,7 +56,7 @@ push: ## push image to dockerhub
 			echo "tagging & pushing image -- docker.io/anchore/anchore-engine:dev"
 			docker tag $(IMAGE_NAME) docker.io/anchore/anchore-engine:dev
 			docker push docker.io/anchore/anchore-engine:dev
-		elif [[ $(GIT_BRANCH) =~ '(0.2|0.3|0.4|0.5|0.6)' ]]; then
+		elif [[ $(GIT_BRANCH) =~ $(RELEASE_BRANCHES) ]]; then
 			echo "tagging & pushing image -- docker.io/anchore/anchore-engine:$(GIT_BRANCH)-dev"
 			docker tag $(IMAGE_NAME) docker.io/anchore/anchore-engine:$(GIT_BRANCH)-dev
 			docker push docker.io/anchore/anchore-engine:$(GIT_BRANCH)-dev
@@ -75,7 +76,6 @@ deps: venv ## install testing dependencies
 	mkdir -p .tox
 	hash tox || pip install tox
 	hash docker-compose || pip install docker-compose
-	hash anchore-cli || pip install anchorecli
 
 .PHONY: test-all
 test-all: test-unit test-integration test-functional test-compose ## run all tests - unit, integration, functional, e2e
@@ -102,6 +102,7 @@ test-functional: deps ## run functional tests with tox
 .PHONY: test-compose
 test-compose: compose-up ## run compose tests with docker-compose
 	$(VENV_ACTIVATE)
+	hash anchore-cli || pip install anchorecli
 	if [[ $(CI) == true ]]; then
 		# forward port 8227 from remote-docker to runner
 		ssh -MS anchore -fN4 -L 8228:localhost:8228 remote-docker

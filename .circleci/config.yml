@@ -110,6 +110,7 @@ jobs:
     - image: circleci/python:3.6
     steps:
     - setup_remote_docker
+    - checkout
     - <<: *attach_workspace
     - <<: *load_docker_image
     - run:
