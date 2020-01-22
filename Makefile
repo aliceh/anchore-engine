@@ -51,7 +51,7 @@ $(VENV_NAME)/docker-compose.yaml: docker-compose.yaml deps
 .PHONY: compose-down
 compose-down:
 	$(VENV_ACTIVATE)
-	docker-compose -f $(VENV_NAME)/compose/$(COMMIT)/docker-compose.yaml down -v
+	docker-compose -f $(VENV_NAME)/compose/$(COMMIT)/docker-compose.yaml down
 	rm -rf $(VENV_NAME)/compose/$(COMMIT)
 
 .PHONY: push
